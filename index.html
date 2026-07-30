@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Livestock Business Manager</title>
+<style>
+  :root {
+    --green-dark: #1a3a0a;
+    --green-mid: #2d5016;
+    --green-accent: #4a7c22;
+    --green-light: #7ab648;
+    --cream: #faf7f0;
+    --cream-dark: #f0ead8;
+    --brown: #8b5e3c;
+    --brown-light: #c4956a;
+    --text: #1a1a0e;
+    --text-muted: #5a5a3a;
+    --border: #d4c9a8;
+    --white: #ffffff;
+    --red: #c0392b;
+    --red-light: #f8d7da;
+    --blue: #1a5276;
+    --blue-light: #d6eaf8;
+    --yellow: #d4ac0d;
+    --yellow-light: #fef9e7;
+    --sidebar-w: 220px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+  
+  /* TOP BAR */
+  #topbar { background: var(--green-dark); color: var(--cream); display: flex; align-items: center; padding: 0 20px; height: 52px; gap: 14px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+  #topbar .logo { font-size: 20px; }
+  #topbar h1 { font-size: 16px; font-weight: 700; letter-spacing: .3px; flex: 1; }
+  #topbar .biz-name { font-size: 13px; color: var(--green-light); font-style: italic; }
+
+  /* LAYOUT */
+  #layout { display: flex; flex: 1; }
+  
+  /* SIDEBAR */
+  #sidebar { width: var(--sidebar-w); background: var(--green-mid); color: var(--cream); display: flex; flex-direction: column; padding: 12px 0; min-height: calc(100vh - 52px); position: sticky; top: 52px; align-self: flex-start; height: calc(100vh - 52px); overflow-y: auto; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 18px; cursor: pointer; font-size: 14px; transition: background .15s; border-left: 3px solid transparent; }
+  .nav-item:hover { background: rgba(255,255,255,.1); }
+  .nav-item.active { background: rgba(255,255,255,.15); border-left-color: var(--green-light); font-weight: 600; }
+  .nav-item .icon { font-size: 18px; min-width: 22px; }
+  .nav-section { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,.4); padding: 16px 18px 6px; }
+
+  /* MAIN */
+  #main { flex: 1; padding: 24px; overflow: auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS / STATS */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .stat-card .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+  .stat-card .value { font-size: 26px; font-weight: 700; color: var(--green-dark); }
+  .stat-card .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* SECTION HEADER */
+  .sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .sec-header h2 { font-size: 18px; color: var(--green-dark); }
+
+  /* TABLES */
+  .table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: 10px; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--green-mid); color: var(--cream); padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; position: sticky; top: 0; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--cream-dark); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f6f4ee; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s, transform .1s; }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--green-accent); color: white; }
+  .btn-primary:hover { opacity: .88; }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-danger:hover { opacity: .88; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+  .btn-ghost:hover { background: var(--cream-dark); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 5px; }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #d4edda; color: #155724; }
+  .badge-yellow { background: var(--yellow-light); color: #856404; }
+  .badge-red { background: var(--red-light); color: #721c24; }
+  .badge-blue { background: var(--blue-light); color: var(--blue); }
+  .badge-gray { background: #e2e3e5; color: #383d41; }
+
+  /* LOADING OVERLAY (stealth data sync) */
+  #loading-overlay { display:none; position: fixed; inset: 0; z-index: 500; align-items:center; justify-content:center; backdrop-filter: blur(4px); background: rgba(250,247,240,.55); }
+  #loading-overlay.open { display:flex; }
+  body.app-busy, body.app-busy * { cursor: wait !important; }
+  .loading-box { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 22px 28px; display:flex; align-items:center; gap: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+  .spinner { width: 22px; height: 22px; border: 3px solid var(--cream-dark); border-top-color: var(--green-accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-box span { font-size: 13px; font-weight: 600; color: var(--green-dark); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 12px; width: 92%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .modal-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h3 { font-size: 16px; color: var(--green-dark); }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+  .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); line-height: 1; }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid.one-col { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+  input, select, textarea { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; color: var(--text); background: var(--cream); transition: border-color .15s; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--green-accent); background: white; }
+  textarea { resize: vertical; min-height: 70px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 9px 18px; font-size: 13px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; font-weight: 500; }
+  .tab.active { color: var(--green-accent); border-bottom-color: var(--green-accent); font-weight: 700; }
+
+  /* ALERTS */
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .alert-info { background: var(--blue-light); color: var(--blue); border: 1px solid #a9cce3; }
+  .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .alert-warn { background: var(--yellow-light); color: #856404; border: 1px solid #ffeeba; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+  .empty .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+
+  /* ANIMAL CARD GRID */
+  .animal-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap: 14px; }
+  .animal-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px; transition: box-shadow .15s; }
+  .animal-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+  .animal-card .ac-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .animal-card .ac-name { font-weight: 700; font-size: 14px; }
+  .animal-card .ac-type { font-size: 12px; color: var(--text-muted); }
+  .animal-card .ac-row { display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px; }
+  .animal-card .ac-row .k { color: var(--text-muted); }
+  .animal-card .ac-actions { display: flex; gap: 6px; margin-top: 12px; }
+
+  /* INPUT LOG */
+  .input-type-pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
+  .itp-food { background: #d4edda; color: #155724; }
+  .itp-medicine { background: var(--red-light); color: #721c24; }
+  .itp-vitamin { background: var(--blue-light); color: var(--blue); }
+  .itp-supplement { background: var(--yellow-light); color: #856404; }
+  .itp-water { background: #cce5ff; color: #004085; }
+  .itp-other { background: #e2e3e5; color: #383d41; }
+
+  /* DASHBOARD SUMMARY LIST */
+  .summary-list { background: var(--white); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .summary-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--cream-dark); font-size: 13px; }
+  .summary-item:last-child { border-bottom: none; }
+
+  /* SETTINGS */
+  .settings-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 20px; max-width: 560px; margin-bottom: 20px; }
+  .settings-card h3 { font-size: 15px; color: var(--green-dark); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* GAS TEMPLATE */
+  .code-block { background: var(--green-dark); color: #a8ff78; font-family: 'Consolas', monospace; font-size: 11px; padding: 16px; border-radius: 8px; overflow: auto; max-height: 340px; white-space: pre; }
+
+  /* SEARCH / FILTER BAR */
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-bar input, .filter-bar select { padding: 7px 11px; font-size: 13px; }
+  .filter-bar input { flex: 1; min-width: 180px; }
+
+  /* PROFIT/LOSS */
+  .profit { color: #155724; font-weight: 700; }
+  .loss { color: #721c24; font-weight: 700; }
+  .neutral { color: #856404; font-weight: 700; }
+  .text-muted { color: var(--text-muted); }
+
+  /* PROJECTED FIGURES */
+  .stat-card.proj { border-left: 3px solid var(--yellow); }
+  .proj-row { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; margin-top: 8px; border-top: 1px dashed var(--border); font-size: 12px; }
+  .proj-row .k { color: var(--text-muted); }
+  .margin-pill { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; margin-left: 6px; }
+  .margin-pill.profit { background: #d4edda; color: #155724; }
+  .margin-pill.neutral { background: var(--yellow-light); color: #856404; }
+  .margin-pill.loss { background: var(--red-light); color: #721c24; }
+
+  /* DOUBLE-TAP TARGETS (view details / computation) */
+  #groups-tbody tr[data-id], #inputs-tbody tr[data-id], #sales-tbody tr[data-id] { cursor: pointer; touch-action: manipulation; }
+  .animal-card[data-id] { cursor: pointer; touch-action: manipulation; }
+  .proj-cell { cursor: pointer; touch-action: manipulation; position: relative; }
+  .proj-cell:hover { text-decoration: underline dotted; }
+  .proj-row[data-animal-id] { cursor: pointer; touch-action: manipulation; }
+  .proj-row[data-animal-id]:hover { background: #fbf8ef; margin-left: -4px; margin-right: -4px; padding-left: 4px; padding-right: 4px; border-radius: 6px; }
+  .stat-card.proj[data-tap] { cursor: pointer; touch-action: manipulation; }
+  .stat-card.proj[data-tap]:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+  .tap-hint { font-size: 11px; color: var(--text-muted); margin: -8px 0 14px; }
+
+  /* DETAIL VIEW (read-only info modal) */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
+  .detail-grid.one-col { grid-template-columns: 1fr; }
+  .detail-item { display: flex; flex-direction: column; gap: 3px; }
+  .detail-item.full { grid-column: 1/-1; }
+  .detail-item .dl-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+  .detail-item .dl-value { font-size: 14px; color: var(--text); line-height: 1.4; }
+  .detail-section-title { font-size: 13px; font-weight: 700; color: var(--green-dark); margin: 18px 0 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .detail-section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+  .detail-note { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+
+  /* RESPONSIVE */
+  @media(max-width:700px){
+    #sidebar { display: none; }
+    .form-grid { grid-template-columns: 1fr; }
+    .animal-grid { grid-template-columns: 1fr; }
+    #main { padding: 14px; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .report-summary-grid { grid-template-columns: 1fr !important; }
+  }
+  #mobile-nav { display: none; }
+  @media(max-width:700px){
+    #mobile-nav { display: flex; overflow-x: auto; background: var(--green-mid); gap: 0; position: sticky; top: 52px; z-index: 99; }
+    #mobile-nav .nav-item { padding: 10px 14px; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; font-size: 12px; }
+    #mobile-nav .nav-item.active { border-bottom-color: var(--green-light); background: rgba(255,255,255,.1); }
+    #mobile-nav .nav-item .icon { font-size: 15px; }
+    #mobile-nav .nav-item span:not(.icon) { display: none; }
+  }
+
+  /* PRINT */
+  #print-area { display: none; }
+  .print-header { margin-bottom: 18px; border-bottom: 2px solid #1a3a0a; padding-bottom: 10px; }
+  .print-header h1 { font-size: 19px; color: #1a3a0a; }
+  .print-header h2 { font-size: 15px; color: #2d5016; margin-top: 2px; }
+  .print-header .print-meta { font-size: 11px; color: #5a5a3a; margin-top: 4px; }
+  .print-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px; }
+  .print-table th { background: #2d5016; color: #faf7f0; padding: 6px 8px; text-align: left; }
+  .print-table td { padding: 6px 8px; border-bottom: 1px solid #d4c9a8; }
+  .print-section-title { font-size: 13px; color: #2d5016; margin: 14px 0 8px; }
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area { display: block; position: absolute; top: 0; left: 0; width: 100%; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay"><div class="loading-box"><div class="spinner"></div><span id="loading-msg">Loading data…</span></div></div>
+
+<!-- PRINT AREA (populated dynamically, only visible when printing) -->
+<div id="print-area"></div>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <span class="logo">🐄</span>
+  <h1>Livestock Business Manager</h1>
+  <span class="biz-name" id="topbar-biz"></span>
+</div>
+
+<!-- MOBILE NAV -->
+<div id="mobile-nav"></div>
+
+<div id="layout">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" data-page="dashboard"><span class="icon">🏠</span><span>Dashboard</span></div>
+    <div class="nav-section">Management</div>
+    <div class="nav-item" data-page="groups"><span class="icon">📁</span><span>Groups</span></div>
+    <div class="nav-item" data-page="animals"><span class="icon">🐖</span><span>Animals</span></div>
+    <div class="nav-item" data-page="inputs"><span class="icon">🧪</span><span>Input Logs</span></div>
+    <div class="nav-item" data-page="sales"><span class="icon">💰</span><span>Sales</span></div>
+    <div class="nav-section">System</div>
+    <div class="nav-item" data-page="reports"><span class="icon">📊</span><span>Reports</span></div>
+    <div class="nav-item" data-page="settings"><span class="icon">⚙️</span><span>Settings</span></div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main id="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <!--:div class="sec-header"><h2>🏠 Dashboard</h2><button class="btn btn-primary btn-sm" onclick="loadSampleData()">Load Sample Data</button></div -->
+      <div class="stat-grid" id="dash-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-wrap:wrap;" id="dash-lower">
+        <div>
+          <div class="sec-header"><h2 style="font-size:15px">Recent Animals</h2></div>
+          <div class="summary-list" id="dash-recent-animals"></div>
+        </div>
+        <div>
+          <div class="sec-header"><h2 style="font-size:15px">Recent Inputs</h2></div>
+          <div class="summary-list" id="dash-recent-inputs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GROUPS -->
+    <div class="page" id="page-groups">
+      <div class="sec-header">
+        <h2>📁 Animal Groups</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="openPrintModal('groups')">🖨️ Print</button>
+          <button class="btn btn-primary" onclick="openGroupModal()">+ New Group</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input id="grp-search" placeholder="Search groups…" oninput="renderGroups()">
+        <select id="grp-status-filter" onchange="renderGroups()">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="sold">Sold</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+      <div class="tap-hint">💡 Double-tap a row for full details · double-tap Proj. Revenue/Profit for the computation</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Group Name</th><th>Animal Type</th><th>Head Count</th><th>Proj. Revenue</th><th>Proj. Profit</th><th>Margin</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+          <tbody id="groups-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANIMALS -->
+    <div class="page" id="page-animals">
+      <div class="sec-header">
+        <h2>🐖 Animals</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="openPrintModal('animals')">🖨️ Print</button>
+          <button class="btn btn-primary" onclick="openAnimalModal()">+ Add Animal</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input id="ani-search" placeholder="Search by name, breed…" oninput="renderAnimals()">
+        <select id="ani-group-filter" onchange="renderAnimals()">
+          <option value="">All Groups</option>
+        </select>
+        <select id="ani-status-filter" onchange="renderAnimals()">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="sold">Sold</option>
+          <option value="deceased">Deceased</option>
+        </select>
+      </div>
+      <div class="tap-hint">💡 Double-tap a card for full details · double-tap Proj. Profit for the computation</div>
+      <div class="animal-grid" id="animals-grid"></div>
+    </div>
+
+    <!-- INPUTS -->
+    <div class="page" id="page-inputs">
+      <div class="sec-header">
+        <h2>🧪 Input Logs</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="openPrintModal('inputs')">🖨️ Print</button>
+          <button class="btn btn-primary" onclick="openInputModal()">+ Log Input</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input id="inp-search" placeholder="Search product, administered by…" oninput="renderInputs()">
+        <select id="inp-type-filter" onchange="renderInputs()">
+          <option value="">All Types</option>
+          <option value="food">Food</option>
+          <option value="medicine">Medicine</option>
+          <option value="vitamin">Vitamin</option>
+          <option value="supplement">Supplement</option>
+          <option value="water">Water</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="tap-hint">💡 Double-tap a row for full details</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Product</th><th>Qty</th><th>Total Cost</th><th>Recipients</th><th>By</th><th>Actions</th></tr></thead>
+          <tbody id="inputs-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SALES -->
+    <div class="page" id="page-sales">
+      <div class="sec-header">
+        <h2>💰 Sales Records</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="openPrintModal('sales')">🖨️ Print</button>
+          <button class="btn btn-primary" onclick="openSaleModal()">+ Record Sale</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input id="sale-search" placeholder="Search buyer, notes…" oninput="renderSales()">
+      </div>
+      <div class="tap-hint">💡 Double-tap a row for full details</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Animal</th><th>Weight (kg)</th><th>₱/kg</th><th>Gross</th><th>Input Cost</th><th>Net Profit</th><th>Buyer</th><th>Actions</th></tr></thead>
+          <tbody id="sales-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="page-reports">
+      <div class="sec-header" style="margin-bottom:20px">
+        <h2>📊 Reports</h2>
+        <button class="btn btn-ghost" onclick="openPrintModal('reports')">🖨️ Print</button>
+      </div>
+      <div class="tabs">
+        <div class="tab active" data-rtab="summary" onclick="switchReportTab('summary')">Summary</div>
+        <div class="tab" data-rtab="per-group" onclick="switchReportTab('per-group')">Per Group</div>
+        <div class="tab" data-rtab="animals-report" onclick="switchReportTab('animals-report')">Animal Performance</div>
+      </div>
+      <div id="report-summary" class="report-tab"></div>
+      <div id="report-per-group" class="report-tab" style="display:none"></div>
+      <div id="report-animals-report" class="report-tab" style="display:none"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <h2 style="margin-bottom:20px">⚙️ Settings</h2>
+      <div class="settings-card">
+        <h3>Business Info</h3>
+        <div class="form-grid">
+          <div class="form-group"><label>Business Name</label><input id="s-biz" placeholder="e.g. Green Valley Farm"></div>
+          <div class="form-group"><label>Owner Name</label><input id="s-owner" placeholder="Owner name"></div>
+          <div class="form-group"><label>Currency Symbol</label><input id="s-currency" value="₱" maxlength="3"></div>
+          <div class="form-group"><label>Default ₱/kg</label><input type="number" id="s-ppk" value="200"></div>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3>Google Apps Script Backend</h3>
+        <div class="alert alert-info">This app is connected to your Google Sheet backend. Data is retrieved automatically each time the app opens.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="testGasConnection()">🔗 Test Connection</button>
+        </div>
+        <div id="gas-status" style="margin-top:10px;font-size:13px;"></div>
+      </div>
+
+      <div class="settings-card">
+        <h3>Data Management</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="exportData()">📥 Export JSON</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('import-file').click()">📤 Import JSON</button>
+          <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ Clear All Data</button>
+        </div>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ======================== MODALS ======================== -->
+
+<!-- GROUP MODAL -->
+<div class="modal-overlay" id="group-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="group-modal-title">New Group</h3>
+      <button class="close-btn" onclick="closeModal('group-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label>Group Name</label><input id="gm-name" placeholder="e.g. Fattening Swine - Batch A"></div>
+        <div class="form-group"><label>Animal Type</label>
+          <select id="gm-type">
+            <option value="pig">Pig</option><option value="chicken">Chicken</option><option value="goat">Goat</option>
+            <option value="cattle">Cattle</option><option value="sheep">Sheep</option><option value="duck">Duck</option><option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="gm-status"><option value="active">Active</option><option value="sold">Sold</option><option value="closed">Closed</option></select>
+        </div>
+        <div class="form-group"><label>Date Created</label><input type="date" id="gm-date"></div>
+        <div class="form-group full"><label>Description</label><textarea id="gm-desc" placeholder="Notes about this group…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('group-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveGroup()">Save Group</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANIMAL MODAL -->
+<div class="modal-overlay" id="animal-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="animal-modal-title">Add Animal</h3>
+      <button class="close-btn" onclick="closeModal('animal-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label>Name / ID Tag</label><input id="am-name" placeholder="e.g. Swine White-01"></div>
+        <div class="form-group"><label>Group</label><select id="am-group"></select></div>
+        <div class="form-group"><label>Gender</label>
+          <select id="am-gender"><option value="male">Male</option><option value="female">Female</option><option value="unknown">Unknown</option></select>
+        </div>
+        <div class="form-group"><label>Breed</label><input id="am-breed" placeholder="e.g. Yorkshire"></div>
+        <div class="form-group"><label>Color / Markings</label><input id="am-color" placeholder="e.g. White with spots"></div>
+        <div class="form-group"><label>Date Acquired</label><input type="date" id="am-acquired"></div>
+        <div class="form-group"><label>How Acquired</label>
+          <select id="am-acqtype"><option value="bought">Bought</option><option value="born">Born on Farm</option><option value="gifted">Gifted</option><option value="traded">Traded</option></select>
+        </div>
+        <div class="form-group"><label>Acquisition Cost (₱)</label><input type="number" id="am-acqcost" value="0" min="0"></div>
+        <div class="form-group"><label>Birth Date</label><input type="date" id="am-birth"></div>
+        <div class="form-group"><label>Initial Weight (kg)</label><input type="number" id="am-initwt" value="0" step="0.1" min="0"></div>
+        <div class="form-group"><label>Current Weight (kg)</label><input type="number" id="am-curwt" value="0" step="0.1" min="0"></div>
+        <div class="form-group"><label>Health Status</label>
+          <select id="am-health"><option value="healthy">Healthy</option><option value="sick">Sick</option><option value="recovering">Recovering</option><option value="quarantine">Quarantine</option></select>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="am-status"><option value="active">Active</option><option value="sold">Sold</option><option value="deceased">Deceased</option></select>
+        </div>
+        <div class="form-group full"><label>Notes</label><textarea id="am-notes" placeholder="Additional observations…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('animal-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAnimal()">Save Animal</button>
+    </div>
+  </div>
+</div>
+
+<!-- INPUT MODAL -->
+<div class="modal-overlay" id="input-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="input-modal-title">Log Input</h3>
+      <button class="close-btn" onclick="closeModal('input-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Date</label><input type="date" id="im-date"></div>
+        <div class="form-group"><label>Input Type</label>
+          <select id="im-type">
+            <option value="food">Food</option><option value="medicine">Medicine</option><option value="vitamin">Vitamin</option>
+            <option value="supplement">Supplement</option><option value="water">Water</option><option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Product Name</label><input id="im-product" placeholder="e.g. Premium Grower Hog Pellets"></div>
+        <div class="form-group"><label>Unit</label><input id="im-unit" placeholder="kg / L / pack / mL"></div>
+        <div class="form-group"><label>Quantity</label><input type="number" id="im-qty" value="1" min="0" step="0.01" oninput="calcInputCost()"></div>
+        <div class="form-group"><label>Unit Cost (₱)</label><input type="number" id="im-unitcost" value="0" min="0" step="0.01" oninput="calcInputCost()"></div>
+        <div class="form-group"><label>Total Cost (₱)</label><input type="number" id="im-totalcost" value="0" step="0.01" readonly style="background:#f0f0e8"></div>
+        <div class="form-group"><label>Administered By</label><input id="im-by" placeholder="Name or role"></div>
+        <div class="form-group full">
+          <label>Recipients</label>
+          <div id="im-recipients" style="background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:8px;max-height:140px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px;">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="selectAllRecipients()">Select All</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="clearAllRecipients()">Clear All</button>
+          </div>
+        </div>
+        <div class="form-group full"><label>Notes</label><textarea id="im-notes" placeholder="Additional notes…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('input-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInput()">Save Input</button>
+    </div>
+  </div>
+</div>
+
+<!-- SALE MODAL -->
+<div class="modal-overlay" id="sale-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="sale-modal-title">Record Sale</h3>
+      <button class="close-btn" onclick="closeModal('sale-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Date</label><input type="date" id="sm-date"></div>
+        <div class="form-group"><label>Animal Sold</label><select id="sm-animal"><option value="">-- Select Animal --</option></select></div>
+        <div class="form-group"><label>Weight at Sale (kg)</label><input type="number" id="sm-weight" value="0" step="0.1" min="0" oninput="calcSaleProfit()"></div>
+        <div class="form-group"><label>Price per Kilo (₱)</label><input type="number" id="sm-ppk" value="200" step="0.01" min="0" oninput="calcSaleProfit()"></div>
+        <div class="form-group"><label>Gross Revenue (₱)</label><input type="number" id="sm-gross" value="0" readonly style="background:#f0f0e8"></div>
+        <div class="form-group"><label>Acquisition Cost (₱)</label><input type="number" id="sm-acqcost" value="0" step="0.01" oninput="calcSaleProfit()"></div>
+        <div class="form-group"><label>Input Cost Allocated (₱)</label><input type="number" id="sm-inputcost" value="0" step="0.01" oninput="calcSaleProfit()"></div>
+        <div class="form-group"><label>Net Profit (₱)</label><input type="number" id="sm-net" value="0" readonly style="background:#f0f0e8"></div>
+        <div class="form-group full"><label>Buyer Name</label><input id="sm-buyer" placeholder="e.g. Geralds Meat Shop"></div>
+        <div class="form-group full"><label>Notes</label><textarea id="sm-notes" placeholder="Notes about the transaction…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('sale-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSale()">Save Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header"><h3>Confirm Delete</h3><button class="close-btn" onclick="closeModal('confirm-modal')">✕</button></div>
+    <div class="modal-body"><p id="confirm-msg" style="font-size:14px;line-height:1.5"></p></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('confirm-modal')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT OPTIONS MODAL -->
+<div class="modal-overlay" id="print-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3 id="print-modal-title">Print</h3>
+      <button class="close-btn" onclick="closeModal('print-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid one-col" id="print-modal-body"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('print-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="executePrint()">🖨️ Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL / COMPUTATION VIEW MODAL (read-only, opened via double-tap) -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" id="detail-modal-box">
+    <div class="modal-header">
+      <h3 id="detail-modal-title">Details</h3>
+      <button class="close-btn" onclick="closeModal('detail-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="detail-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('detail-modal')">Close</button>
+      <button class="btn btn-primary" id="detail-modal-edit-btn">✏️ Edit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================== BACKEND (hard-coded) ======================
+// GAS Web App URL is fixed for this deployment — no longer editable from Settings.
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwQF6QqIqoqDeB5lu4IE3RMB1P6Mu64o4_iYeJXKIPadK_DnVSS-cZ_UvQQUPveQLk-/exec';
+
+// ====================== DATA STORE ======================
+const STORAGE_KEY = 'livestock_mgr_v1';
+let DB = {
+  groups: [],
+  animals: [],
+  inputs: [],
+  sales: [],
+  settings: { currency: '₱', defaultPricePerKilo: 200, businessName: '', ownerName: '' }
+};
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) DB = JSON.parse(raw);
+  } catch(e) {}
+}
+
+// ====================== LOADING OVERLAY ======================
+// "Stealth" sync: if we already have cached data on screen, refreshing from the
+// Sheet happens silently in the background with no overlay/cursor change at all.
+// The overlay + waiting cursor only appear when there's genuinely nothing to show
+// yet (first-ever load) and the user would otherwise be staring at an empty app.
+function showLoading(msg) {
+  document.getElementById('loading-msg').textContent = msg||'Loading data…';
+  document.getElementById('loading-overlay').classList.add('open');
+  document.body.classList.add('app-busy');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('open');
+  document.body.classList.remove('app-busy');
+}
+
+// ====================== UTILS ======================
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmt(n) { return (DB.settings.currency||'₱') + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function fmtDate(s) { if (!s) return '—'; const d = new Date(s+'T00:00'); return isNaN(d)?s:d.toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}); }
+function ageStr(birthStr) {
+  if (!birthStr) return '—';
+  const b = new Date(birthStr+'T00:00'), now = new Date();
+  let diffMs = now - b; if (diffMs < 0) return '—';
+  const days = Math.floor(diffMs/86400000);
+  const months = Math.floor(days/30.4375);
+  if (months < 1) return days + 'd';
+  if (months < 24) { const d = Math.round(days % 30.4375); return months+'mo' + (d>0?' '+d+'d':''); }
+  const yrs = Math.floor(months/12), mo = months%12;
+  return yrs+'yr' + (mo>0?' '+mo+'mo':'');
+}
+function animalName(id) {
+  const a = DB.animals.find(x=>x.animalId===id);
+  return a ? a.name : id||'—';
+}
+function groupName(id) {
+  const g = DB.groups.find(x=>x.groupId===id);
+  return g ? g.groupName : '—';
+}
+function animalIcon(type) {
+  const m = {pig:'🐖',chicken:'🐔',goat:'🐐',cattle:'🐄',sheep:'🐑',duck:'🦆'};
+  return m[type]||'🐾';
+}
+function healthBadge(h) {
+  const m = {healthy:'badge-green',sick:'badge-red',recovering:'badge-yellow',quarantine:'badge-blue'};
+  return `<span class="badge ${m[h]||'badge-gray'}">${h}</span>`;
+}
+function statusBadge(s) {
+  const m = {active:'badge-green',sold:'badge-blue',deceased:'badge-red',closed:'badge-gray'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${s}</span>`;
+}
+function inputTypePill(t) {
+  return `<span class="input-type-pill itp-${t}">${t}</span>`;
+}
+function marginPill(margin) {
+  const cls = margin>20?'profit':margin<0?'loss':'neutral';
+  return `<span class="margin-pill ${cls}">${fmtNum(margin,1)}%</span>`;
+}
+
+// ====================== COMPUTE (Projections) ======================
+// All projection math is centered here so the Dashboard, Groups, Animals,
+// and Reports pages stay consistent. "Projected" = valuing every ACTIVE
+// animal's CURRENT weight at the settings-defined default price/kg, minus
+// what's actually been sunk into it (acquisition cost + its fair share of
+// logged input costs). This is a live "what if I sold everything today"
+// snapshot — separate from realized Sales figures, which only reflect
+// animals that have actually been sold.
+function fmtNum(n,d=1) { return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+
+const Compute = {
+  // Fair share of logged input cost attributable to one animal: each Input
+  // log's totalCost is split evenly across all of its recipientAnimalIds.
+  allocatedInputCost(animalId) {
+    return DB.inputs.reduce((sum, inp) => {
+      const ids = inp.recipientAnimalIds || [];
+      if (!ids.includes(animalId)) return sum;
+      return sum + (Number(inp.totalCost)||0) / Math.max(1, ids.length);
+    }, 0);
+  },
+  // What the animal would fetch today at the default ₱/kg, based on its
+  // current recorded weight.
+  projectedGross(animal) {
+    return (Number(animal.currentWeightKg)||0) * (Number(DB.settings.defaultPricePerKilo)||0);
+  },
+  // Projected gross minus acquisition cost minus allocated input cost.
+  projectedNetProfit(animal) {
+    return this.projectedGross(animal) - (Number(animal.acquisitionCost)||0) - this.allocatedInputCost(animal.animalId);
+  },
+  // Projected net profit as a % of projected gross (0 if no projected value yet).
+  profitMargin(animal) {
+    const g = this.projectedGross(animal);
+    if (!g) return 0;
+    return (this.projectedNetProfit(animal) / g) * 100;
+  },
+  weightGain(animal) {
+    return (Number(animal.currentWeightKg)||0) - (Number(animal.initialWeightKg)||0);
+  },
+  activeAnimalsInGroup(groupId) {
+    return DB.animals.filter(a=>a.groupId===groupId && a.status==='active');
+  },
+  groupAcquisitionCost(groupId) {
+    return DB.animals.filter(a=>a.groupId===groupId).reduce((s,a)=>s+(Number(a.acquisitionCost)||0),0);
+  },
+  // Sum of input costs attributable to a group: for every input log, the
+  // fraction of its recipients that belong to this group's animals, times
+  // its totalCost.
+  groupInputCost(groupId) {
+    const gAnimalIds = DB.animals.filter(a=>a.groupId===groupId).map(a=>a.animalId);
+    return DB.inputs.reduce((sum, inp) => {
+      const ids = inp.recipientAnimalIds || [];
+      const inGroup = ids.filter(id=>gAnimalIds.includes(id)).length;
+      if (!inGroup) return sum;
+      return sum + (Number(inp.totalCost)||0) * (inGroup / Math.max(1, ids.length));
+    }, 0);
+  },
+  groupProjectedRevenue(groupId) {
+    return this.activeAnimalsInGroup(groupId).reduce((s,a)=>s+this.projectedGross(a),0);
+  },
+  groupProjectedProfit(groupId) {
+    return this.groupProjectedRevenue(groupId) - this.groupAcquisitionCost(groupId) - this.groupInputCost(groupId);
+  },
+  groupProfitMargin(groupId) {
+    const rev = this.groupProjectedRevenue(groupId);
+    if (!rev) return 0;
+    return (this.groupProjectedProfit(groupId) / rev) * 100;
+  },
+  projectedTotalRevenue() {
+    return DB.animals.filter(a=>a.status==='active').reduce((s,a)=>s+this.projectedGross(a),0);
+  },
+  projectedTotalProfit() {
+    return DB.animals.filter(a=>a.status==='active').reduce((s,a)=>s+this.projectedNetProfit(a),0);
+  },
+  totalAcquisitionCost() {
+    return DB.animals.reduce((s,a)=>s+(Number(a.acquisitionCost)||0),0);
+  },
+  totalInputCost() {
+    return DB.inputs.reduce((s,i)=>s+(Number(i.totalCost)||0),0);
+  }
+};
+
+// ====================== NAVIGATION ======================
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('[data-page="'+page+'"]').forEach(n=>n.classList.add('active'));
+  renderPage(page);
+}
+function renderPage(page) {
+  if (page==='dashboard') renderDashboard();
+  if (page==='groups') renderGroups();
+  if (page==='animals') renderAnimals();
+  if (page==='inputs') renderInputs();
+  if (page==='sales') renderSales();
+  if (page==='reports') renderReports();
+  if (page==='settings') renderSettings();
+}
+
+// ====================== DASHBOARD ======================
+function renderDashboard() {
+  const activeAnimals = DB.animals.filter(a=>a.status==='active');
+  const totalInputCost = DB.inputs.reduce((s,i)=>s+Number(i.totalCost||0),0);
+  const totalRevenue = DB.sales.reduce((s,r)=>s+Number(r.grossRevenue||0),0);
+  const totalProfit = DB.sales.reduce((s,r)=>s+Number(r.netProfit||0),0);
+
+  const projRevenue = Compute.projectedTotalRevenue();
+  const projProfit = Compute.projectedTotalProfit();
+  const totalCapital = Compute.totalAcquisitionCost() + Compute.totalInputCost();
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card"><div class="label">Active Animals</div><div class="value">${activeAnimals.length}</div><div class="sub">${DB.groups.filter(g=>g.status==='active').length} active groups</div></div>
+    <div class="stat-card"><div class="label">Capital Invested</div><div class="value" style="font-size:20px">${fmt(totalCapital)}</div><div class="sub">Acquisition + inputs</div></div>
+    <div class="stat-card"><div class="label">Total Revenue</div><div class="value" style="font-size:20px">${fmt(totalRevenue)}</div><div class="sub">${DB.sales.length} sales recorded</div></div>
+    <div class="stat-card"><div class="label">Realized Net Profit</div><div class="value ${totalProfit>=0?'profit':'loss'}" style="font-size:20px">${fmt(totalProfit)}</div><div class="sub">From completed sales</div></div>
+    <div class="stat-card proj" data-tap="revenue"><div class="label">Projected Revenue</div><div class="value" style="font-size:20px">${fmt(projRevenue)}</div><div class="sub">Active animals at ${fmt(DB.settings.defaultPricePerKilo||0)}/kg · double-tap for breakdown</div></div>
+    <div class="stat-card proj" data-tap="profit"><div class="label">Projected Profit</div><div class="value ${projProfit>=0?'profit':'loss'}" style="font-size:20px">${fmt(projProfit)}</div><div class="sub">If sold today, after costs · double-tap for breakdown</div></div>
+  `;
+
+  const ra = [...DB.animals].sort((a,b)=>b.dateAcquired>a.dateAcquired?1:-1).slice(0,5);
+  document.getElementById('dash-recent-animals').innerHTML = ra.length ? ra.map(a=>`
+    <div class="summary-item">
+      <span>${animalIcon(DB.groups.find(g=>g.groupId===a.groupId)?.animalType||'')} <b>${a.name}</b> <span style="color:var(--text-muted);font-size:12px">${groupName(a.groupId)}</span></span>
+      ${healthBadge(a.healthStatus)}
+    </div>`).join('') : '<div class="empty"><p>No animals yet.</p></div>';
+
+  const ri = [...DB.inputs].sort((a,b)=>b.date>a.date?1:-1).slice(0,5);
+  document.getElementById('dash-recent-inputs').innerHTML = ri.length ? ri.map(i=>`
+    <div class="summary-item">
+      <span>${inputTypePill(i.inputType)} <b>${i.productName}</b></span>
+      <span style="font-weight:700;color:var(--green-dark)">${fmt(i.totalCost)}</span>
+    </div>`).join('') : '<div class="empty"><p>No inputs yet.</p></div>';
+
+  // Topbar biz name
+  document.getElementById('topbar-biz').textContent = DB.settings.businessName || '';
+}
+
+// ====================== GROUPS ======================
+function getFilteredGroups() {
+  const q = (document.getElementById('grp-search')?.value||'').toLowerCase();
+  const sf = document.getElementById('grp-status-filter')?.value||'';
+  return DB.groups.filter(g=>{
+    if (sf && g.status!==sf) return false;
+    return !q || (g.groupName||'').toLowerCase().includes(q) || (g.animalType||'').toLowerCase().includes(q);
+  });
+}
+function renderGroups() {
+  const rows = getFilteredGroups();
+  const tbody = document.getElementById('groups-tbody');
+  tbody.innerHTML = rows.length ? rows.map(g=>{
+    const cnt = DB.animals.filter(a=>a.groupId===g.groupId&&a.status==='active').length;
+    const projRev = Compute.groupProjectedRevenue(g.groupId);
+    const projProfit = Compute.groupProjectedProfit(g.groupId);
+    const margin = Compute.groupProfitMargin(g.groupId);
+    return `<tr data-id="${g.groupId}">
+      <td><b>${g.groupName}</b>${g.description?`<div style="font-size:11px;color:var(--text-muted)">${g.description}</div>`:''}</td>
+      <td>${animalIcon(g.animalType)} ${g.animalType}</td>
+      <td><b>${cnt}</b> active</td>
+      <td class="proj-cell" data-group-id="${g.groupId}" data-metric="revenue">${fmt(projRev)}</td>
+      <td class="proj-cell ${projProfit>=0?'profit':'loss'}" data-group-id="${g.groupId}" data-metric="profit">${fmt(projProfit)}</td>
+      <td>${cnt?marginPill(margin):'—'}</td>
+      <td>${statusBadge(g.status)}</td>
+      <td>${fmtDate(g.dateCreated)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openGroupModal('${g.groupId}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('group','${g.groupId}')">🗑️</button></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9"><div class="empty"><div class="icon">📁</div><p>No groups yet. Create one to start.</p></div></td></tr>`;
+}
+
+let _editGroupId = null;
+function openGroupModal(id) {
+  _editGroupId = id||null;
+  const g = id ? DB.groups.find(x=>x.groupId===id) : null;
+  document.getElementById('group-modal-title').textContent = g ? 'Edit Group' : 'New Group';
+  document.getElementById('gm-name').value = g?.groupName||'';
+  document.getElementById('gm-type').value = g?.animalType||'pig';
+  document.getElementById('gm-status').value = g?.status||'active';
+  document.getElementById('gm-date').value = g?.dateCreated||today();
+  document.getElementById('gm-desc').value = g?.description||'';
+  openModal('group-modal');
+}
+function saveGroup() {
+  const name = document.getElementById('gm-name').value.trim();
+  if (!name) return alert('Group name is required.');
+  if (_editGroupId) {
+    const g = DB.groups.find(x=>x.groupId===_editGroupId);
+    Object.assign(g,{groupName:name,animalType:document.getElementById('gm-type').value,status:document.getElementById('gm-status').value,dateCreated:document.getElementById('gm-date').value,description:document.getElementById('gm-desc').value});
+  } else {
+    DB.groups.push({groupId:uid(),groupName:name,animalType:document.getElementById('gm-type').value,status:document.getElementById('gm-status').value,dateCreated:document.getElementById('gm-date').value,description:document.getElementById('gm-desc').value});
+  }
+  save(); closeModal('group-modal'); renderGroups();
+  syncRecord(_editGroupId ? DB.groups.find(x=>x.groupId===_editGroupId) : DB.groups[DB.groups.length-1], 'saveGroup');
+}
+
+// ====================== ANIMALS ======================
+function getFilteredAnimals() {
+  const q = (document.getElementById('ani-search')?.value||'').toLowerCase();
+  const gf = document.getElementById('ani-group-filter')?.value||'';
+  const sf = document.getElementById('ani-status-filter')?.value||'';
+  return DB.animals.filter(a=>{
+    if (gf && a.groupId!==gf) return false;
+    if (sf && a.status!==sf) return false;
+    return !q || (a.name||'').toLowerCase().includes(q) || (a.breed||'').toLowerCase().includes(q) || (a.color||'').toLowerCase().includes(q);
+  });
+}
+function renderAnimals() {
+  // Populate group filter
+  const gsel = document.getElementById('ani-group-filter');
+  const curGf = gsel.value;
+  gsel.innerHTML = '<option value="">All Groups</option>' + DB.groups.map(g=>`<option value="${g.groupId}">${g.groupName}</option>`).join('');
+  gsel.value = curGf;
+
+  const list = getFilteredAnimals();
+
+  const grid = document.getElementById('animals-grid');
+  grid.innerHTML = list.length ? list.map(a=>{
+    const grp = DB.groups.find(g=>g.groupId===a.groupId);
+    const wgain = (Number(a.currentWeightKg)||0) - (Number(a.initialWeightKg)||0);
+    return `<div class="animal-card" data-id="${a.animalId}">
+      <div class="ac-head">
+        <div>
+          <div class="ac-name">${animalIcon(grp?.animalType||'')} ${a.name}</div>
+          <div class="ac-type">${grp?.groupName||'—'}</div>
+        </div>
+        ${healthBadge(a.healthStatus)}
+      </div>
+      <div class="ac-row"><span class="k">Gender</span><span>${a.gender}</span></div>
+      <div class="ac-row"><span class="k">Breed</span><span>${a.breed||'—'}</span></div>
+      <div class="ac-row"><span class="k">Age</span><span>${ageStr(a.birthDate)}</span></div>
+      <div class="ac-row"><span class="k">Weight</span><span><b>${a.currentWeightKg} kg</b> <span style="color:${wgain>=0?'#155724':'#721c24'};font-size:11px">(${wgain>=0?'+':''}${wgain.toFixed(1)})</span></span></div>
+      <div class="ac-row"><span class="k">Acquired</span><span>${fmtDate(a.dateAcquired)}</span></div>
+      <div class="ac-row"><span class="k">Status</span><span>${statusBadge(a.status)}</span></div>
+      ${a.status==='active' ? `<div class="proj-row" data-animal-id="${a.animalId}">
+        <span class="k">Proj. Profit</span>
+        <span><b class="${Compute.projectedNetProfit(a)>=0?'profit':'loss'}">${fmt(Compute.projectedNetProfit(a))}</b>${marginPill(Compute.profitMargin(a))}</span>
+      </div>` : ''}
+      <div class="ac-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openAnimalModal('${a.animalId}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('animal','${a.animalId}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('') : `<div style="grid-column:1/-1"><div class="empty"><div class="icon">🐖</div><p>No animals found. Add one to start tracking.</p></div></div>`;
+}
+
+let _editAnimalId = null;
+function openAnimalModal(id) {
+  _editAnimalId = id||null;
+  const a = id ? DB.animals.find(x=>x.animalId===id) : null;
+  document.getElementById('animal-modal-title').textContent = a ? 'Edit Animal' : 'Add Animal';
+  document.getElementById('am-group').innerHTML = DB.groups.map(g=>`<option value="${g.groupId}">${g.groupName}</option>`).join('');
+  document.getElementById('am-name').value = a?.name||'';
+  document.getElementById('am-group').value = a?.groupId||DB.groups[0]?.groupId||'';
+  document.getElementById('am-gender').value = a?.gender||'male';
+  document.getElementById('am-breed').value = a?.breed||'';
+  document.getElementById('am-color').value = a?.color||'';
+  document.getElementById('am-acquired').value = a?.dateAcquired||today();
+  document.getElementById('am-acqtype').value = a?.acquisitionType||'bought';
+  document.getElementById('am-acqcost').value = a?.acquisitionCost||0;
+  document.getElementById('am-birth').value = a?.birthDate||'';
+  document.getElementById('am-initwt').value = a?.initialWeightKg||0;
+  document.getElementById('am-curwt').value = a?.currentWeightKg||0;
+  document.getElementById('am-health').value = a?.healthStatus||'healthy';
+  document.getElementById('am-status').value = a?.status||'active';
+  document.getElementById('am-notes').value = a?.notes||'';
+  openModal('animal-modal');
+}
+function saveAnimal() {
+  const name = document.getElementById('am-name').value.trim();
+  if (!name) return alert('Name is required.');
+  const data = {
+    name, groupId:document.getElementById('am-group').value,
+    gender:document.getElementById('am-gender').value,
+    breed:document.getElementById('am-breed').value,
+    color:document.getElementById('am-color').value,
+    dateAcquired:document.getElementById('am-acquired').value,
+    acquisitionType:document.getElementById('am-acqtype').value,
+    acquisitionCost:Number(document.getElementById('am-acqcost').value)||0,
+    birthDate:document.getElementById('am-birth').value,
+    initialWeightKg:Number(document.getElementById('am-initwt').value)||0,
+    currentWeightKg:Number(document.getElementById('am-curwt').value)||0,
+    healthStatus:document.getElementById('am-health').value,
+    status:document.getElementById('am-status').value,
+    notes:document.getElementById('am-notes').value
+  };
+  if (_editAnimalId) { Object.assign(DB.animals.find(x=>x.animalId===_editAnimalId), data); }
+  else { DB.animals.push({animalId:uid(),...data}); }
+  save(); closeModal('animal-modal'); renderAnimals();
+  syncRecord(_editAnimalId ? DB.animals.find(x=>x.animalId===_editAnimalId) : DB.animals[DB.animals.length-1], 'saveAnimal');
+}
+
+// ====================== INPUTS ======================
+function getFilteredInputs() {
+  const q = (document.getElementById('inp-search')?.value||'').toLowerCase();
+  const tf = document.getElementById('inp-type-filter')?.value||'';
+  return DB.inputs.filter(i=>{
+    if (tf && i.inputType!==tf) return false;
+    return !q || i.productName.toLowerCase().includes(q) || (i.administeredBy||'').toLowerCase().includes(q);
+  }).sort((a,b)=>b.date>a.date?1:-1);
+}
+function renderInputs() {
+  const list = getFilteredInputs();
+
+  document.getElementById('inputs-tbody').innerHTML = list.length ? list.map(i=>{
+    const recip = (i.recipientAnimalIds||[]).map(id=>animalName(id)).join(', ') || '—';
+    return `<tr data-id="${i.inputId}">
+      <td>${fmtDate(i.date)}</td>
+      <td>${inputTypePill(i.inputType)}</td>
+      <td><b>${i.productName}</b></td>
+      <td>${i.quantity} ${i.unit}</td>
+      <td>${fmt(i.totalCost)}</td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${recip}">${recip}</td>
+      <td>${i.administeredBy||'—'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openInputModal('${i.inputId}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('input','${i.inputId}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8"><div class="empty"><div class="icon">🧪</div><p>No input logs yet.</p></div></td></tr>`;
+}
+
+function calcInputCost() {
+  const q = Number(document.getElementById('im-qty').value)||0;
+  const uc = Number(document.getElementById('im-unitcost').value)||0;
+  document.getElementById('im-totalcost').value = (q*uc).toFixed(2);
+}
+function buildRecipientsList(existingIds) {
+  existingIds = existingIds || [];
+  const wrap = document.getElementById('im-recipients');
+  // Always show active animals, plus any animal that's already a recipient on
+  // the record being edited (even if it was later sold/deceased) so re-saving
+  // an old log doesn't silently drop that recipient.
+  const pool = DB.animals.filter(a=>a.status==='active' || existingIds.includes(a.animalId));
+  wrap.innerHTML = pool.map(a=>`
+    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:white">
+      <input type="checkbox" class="recip-cb" value="${a.animalId}" style="border:none;padding:0"> ${a.name}${a.status!=='active'?` (${a.status})`:''}
+    </label>`).join('');
+}
+function selectAllRecipients() { document.querySelectorAll('.recip-cb').forEach(cb=>cb.checked=true); }
+function clearAllRecipients() { document.querySelectorAll('.recip-cb').forEach(cb=>cb.checked=false); }
+
+let _editInputId = null;
+function openInputModal(id) {
+  _editInputId = id||null;
+  const i = id ? DB.inputs.find(x=>x.inputId===id) : null;
+  document.getElementById('input-modal-title').textContent = i ? 'Edit Input' : 'Log Input';
+  document.getElementById('im-date').value = i?.date||today();
+  document.getElementById('im-type').value = i?.inputType||'food';
+  document.getElementById('im-product').value = i?.productName||'';
+  document.getElementById('im-unit').value = i?.unit||'kg';
+  document.getElementById('im-qty').value = i?.quantity||1;
+  document.getElementById('im-unitcost').value = i?.unitCost||0;
+  document.getElementById('im-totalcost').value = i?.totalCost||0;
+  document.getElementById('im-by').value = i?.administeredBy||'';
+  document.getElementById('im-notes').value = i?.notes||'';
+  buildRecipientsList(i?.recipientAnimalIds||[]);
+  if (i?.recipientAnimalIds) {
+    document.querySelectorAll('.recip-cb').forEach(cb=>{ cb.checked = i.recipientAnimalIds.includes(cb.value); });
+  }
+  openModal('input-modal');
+}
+function saveInput() {
+  const product = document.getElementById('im-product').value.trim();
+  if (!product) return alert('Product name is required.');
+  const recipientAnimalIds = [...document.querySelectorAll('.recip-cb:checked')].map(cb=>cb.value);
+  const data = {
+    date:document.getElementById('im-date').value,
+    inputType:document.getElementById('im-type').value,
+    productName:product, unit:document.getElementById('im-unit').value,
+    quantity:Number(document.getElementById('im-qty').value)||0,
+    unitCost:Number(document.getElementById('im-unitcost').value)||0,
+    totalCost:Number(document.getElementById('im-totalcost').value)||0,
+    administeredBy:document.getElementById('im-by').value,
+    notes:document.getElementById('im-notes').value,
+    recipientAnimalIds
+  };
+  if (_editInputId) { Object.assign(DB.inputs.find(x=>x.inputId===_editInputId), data); }
+  else { DB.inputs.push({inputId:uid(),...data}); }
+  save(); closeModal('input-modal'); renderInputs();
+  syncRecord(_editInputId ? DB.inputs.find(x=>x.inputId===_editInputId) : DB.inputs[DB.inputs.length-1], 'saveInput');
+}
+
+// ====================== SALES ======================
+function getFilteredSales() {
+  const q = (document.getElementById('sale-search')?.value||'').toLowerCase();
+  return DB.sales.filter(s=>!q || (s.buyerName||'').toLowerCase().includes(q) || (s.notes||'').toLowerCase().includes(q))
+    .sort((a,b)=>b.date>a.date?1:-1);
+}
+function renderSales() {
+  const list = getFilteredSales();
+
+  document.getElementById('sales-tbody').innerHTML = list.length ? list.map(s=>{
+    const np = Number(s.netProfit)||0;
+    return `<tr data-id="${s.saleId}">
+      <td>${fmtDate(s.date)}</td>
+      <td>${animalName(s.animalId)}</td>
+      <td>${s.weightAtSaleKg} kg</td>
+      <td>${fmt(s.pricePerKilo)}</td>
+      <td>${fmt(s.grossRevenue)}</td>
+      <td>${fmt(s.totalInputCostAllocated)}</td>
+      <td class="${np>=0?'profit':'loss'}">${fmt(np)}</td>
+      <td>${s.buyerName||'—'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openSaleModal('${s.saleId}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete('sale','${s.saleId}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9"><div class="empty"><div class="icon">💰</div><p>No sales recorded yet.</p></div></td></tr>`;
+}
+
+function calcSaleProfit() {
+  const wt = Number(document.getElementById('sm-weight').value)||0;
+  const ppk = Number(document.getElementById('sm-ppk').value)||0;
+  const gross = wt*ppk;
+  document.getElementById('sm-gross').value = gross.toFixed(2);
+  const acq = Number(document.getElementById('sm-acqcost').value)||0;
+  const inp = Number(document.getElementById('sm-inputcost').value)||0;
+  document.getElementById('sm-net').value = (gross-acq-inp).toFixed(2);
+}
+
+let _editSaleId = null;
+function openSaleModal(id) {
+  _editSaleId = id||null;
+  const s = id ? DB.sales.find(x=>x.saleId===id) : null;
+  document.getElementById('sale-modal-title').textContent = s ? 'Edit Sale' : 'Record Sale';
+  document.getElementById('sm-animal').innerHTML = `<option value="">-- No specific animal --</option>` + DB.animals.map(a=>`<option value="${a.animalId}">${a.name}</option>`).join('');
+  document.getElementById('sm-date').value = s?.date||today();
+  document.getElementById('sm-animal').value = s?.animalId||'';
+  document.getElementById('sm-weight').value = s?.weightAtSaleKg||0;
+  document.getElementById('sm-ppk').value = s?.pricePerKilo||DB.settings.defaultPricePerKilo||200;
+  document.getElementById('sm-gross').value = s?.grossRevenue||0;
+  document.getElementById('sm-acqcost').value = s?.acquisitionCost||0;
+  document.getElementById('sm-inputcost').value = s?.totalInputCostAllocated||0;
+  document.getElementById('sm-net').value = s?.netProfit||0;
+  document.getElementById('sm-buyer').value = s?.buyerName||'';
+  document.getElementById('sm-notes').value = s?.notes||'';
+
+  // Auto-fill acquisition cost when animal selected
+  document.getElementById('sm-animal').onchange = function() {
+    const a = DB.animals.find(x=>x.animalId===this.value);
+    if (a) { document.getElementById('sm-acqcost').value = a.acquisitionCost||0; calcSaleProfit(); }
+  };
+  openModal('sale-modal');
+}
+function saveSale() {
+  const data = {
+    date:document.getElementById('sm-date').value,
+    animalId:document.getElementById('sm-animal').value,
+    weightAtSaleKg:Number(document.getElementById('sm-weight').value)||0,
+    pricePerKilo:Number(document.getElementById('sm-ppk').value)||0,
+    grossRevenue:Number(document.getElementById('sm-gross').value)||0,
+    acquisitionCost:Number(document.getElementById('sm-acqcost').value)||0,
+    totalInputCostAllocated:Number(document.getElementById('sm-inputcost').value)||0,
+    netProfit:Number(document.getElementById('sm-net').value)||0,
+    buyerName:document.getElementById('sm-buyer').value,
+    notes:document.getElementById('sm-notes').value
+  };
+  if (_editSaleId) { Object.assign(DB.sales.find(x=>x.saleId===_editSaleId), data); }
+  else { DB.sales.push({saleId:uid(),...data}); }
+  save(); closeModal('sale-modal'); renderSales();
+  syncRecord(_editSaleId ? DB.sales.find(x=>x.saleId===_editSaleId) : DB.sales[DB.sales.length-1], 'saveSale');
+}
+
+// ====================== DOUBLE-TAP DETECTION ======================
+// Delegated so it survives re-renders (tbody/grid innerHTML swaps) without
+// needing to rebind per-row. Works for mouse (dblclick-equivalent) and touch
+// alike since it's driven by pointer events + our own timing, not the
+// browser's native (and touch-unreliable) dblclick.
+// `handlers` is an ordered list of {selector, onDouble(el)} — the first
+// selector whose closest() match contains the tap wins, so a more specific
+// target (e.g. a single cell) can be checked before the row/card it sits in.
+function attachDoubleTap(containerId, handlers) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  let lastTap = 0, lastEl = null, downX = 0, downY = 0;
+  container.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; });
+  container.addEventListener('pointerup', e => {
+    if (e.target.closest('button, a, input, select, textarea, label')) return;
+    if (Math.hypot(e.clientX - downX, e.clientY - downY) > 12) return; // ignore drags/scrolls
+    let matched = null, handler = null;
+    for (const h of handlers) {
+      const el = e.target.closest(h.selector);
+      if (el && container.contains(el)) { matched = el; handler = h; break; }
+    }
+    if (!matched) return;
+    const now = Date.now();
+    if (matched === lastEl && now - lastTap < 400) {
+      lastTap = 0; lastEl = null;
+      handler.onDouble(matched);
+    } else {
+      lastTap = now; lastEl = matched;
+    }
+  });
+}
+
+// ====================== DETAIL / COMPUTATION VIEWS ======================
+function showDetail(title, bodyHtml, editFn, wide) {
+  document.getElementById('detail-modal-title').textContent = title;
+  document.getElementById('detail-modal-body').innerHTML = bodyHtml;
+  document.getElementById('detail-modal-box').style.maxWidth = wide ? '680px' : '560px';
+  const editBtn = document.getElementById('detail-modal-edit-btn');
+  if (editFn) { editBtn.style.display = ''; editBtn.onclick = () => { closeModal('detail-modal'); editFn(); }; }
+  else { editBtn.style.display = 'none'; }
+  openModal('detail-modal');
+}
+function detailItem(label, value, full) {
+  return `<div class="detail-item${full?' full':''}"><span class="dl-label">${label}</span><span class="dl-value">${value}</span></div>`;
+}
+
+function showGroupDetail(id) {
+  const g = DB.groups.find(x=>x.groupId===id);
+  if (!g) return;
+  const animals = DB.animals.filter(a=>a.groupId===g.groupId);
+  const activeAnimals = Compute.activeAnimalsInGroup(g.groupId);
+  const projRev = Compute.groupProjectedRevenue(g.groupId);
+  const projProfit = Compute.groupProjectedProfit(g.groupId);
+  const margin = Compute.groupProfitMargin(g.groupId);
+  const body = `
+    <div class="detail-grid">
+      ${detailItem('Group Name', g.groupName, true)}
+      ${detailItem('Animal Type', animalIcon(g.animalType)+' '+g.animalType)}
+      ${detailItem('Status', statusBadge(g.status))}
+      ${detailItem('Date Created', fmtDate(g.dateCreated))}
+      ${detailItem('Total Animals', animals.length)}
+      ${detailItem('Active Animals', activeAnimals.length)}
+      ${g.description ? detailItem('Description', g.description, true) : ''}
+    </div>
+    <div class="detail-section-title">Financials (Active Animals)</div>
+    <div class="detail-grid">
+      ${detailItem('Acquisition Cost', fmt(Compute.groupAcquisitionCost(g.groupId)))}
+      ${detailItem('Input Cost', fmt(Compute.groupInputCost(g.groupId)))}
+      ${detailItem('Projected Revenue', fmt(projRev))}
+      ${detailItem('Projected Profit', `<span class="${projProfit>=0?'profit':'loss'}">${fmt(projProfit)}</span>`)}
+      ${detailItem('Profit Margin', activeAnimals.length?marginPill(margin):'—')}
+    </div>
+    ${animals.length ? `<div class="detail-section-title">Animals in this Group (${animals.length})</div>
+    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Status</th><th>Weight</th><th>Health</th></tr></thead>
+    <tbody>${animals.map(a=>`<tr><td>${a.name}</td><td>${statusBadge(a.status)}</td><td>${a.currentWeightKg} kg</td><td>${healthBadge(a.healthStatus)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+  `;
+  showDetail('📁 ' + g.groupName, body, () => openGroupModal(g.groupId));
+}
+
+function showAnimalDetail(id) {
+  const a = DB.animals.find(x=>x.animalId===id);
+  if (!a) return;
+  const grp = DB.groups.find(g=>g.groupId===a.groupId);
+  const wgain = Compute.weightGain(a);
+  const acqCost = Number(a.acquisitionCost)||0;
+  const inpCost = Compute.allocatedInputCost(a.animalId);
+  const projGross = Compute.projectedGross(a);
+  const projProfit = Compute.projectedNetProfit(a);
+  const margin = Compute.profitMargin(a);
+  const relatedInputs = DB.inputs.filter(i=>(i.recipientAnimalIds||[]).includes(a.animalId));
+  const relatedSale = DB.sales.find(s=>s.animalId===a.animalId);
+  const body = `
+    <div class="detail-grid">
+      ${detailItem('Name / ID Tag', a.name, true)}
+      ${detailItem('Group', grp?.groupName||'—')}
+      ${detailItem('Gender', a.gender)}
+      ${detailItem('Breed', a.breed||'—')}
+      ${detailItem('Color / Markings', a.color||'—')}
+      ${detailItem('Birth Date', fmtDate(a.birthDate))}
+      ${detailItem('Age', ageStr(a.birthDate))}
+      ${detailItem('Date Acquired', fmtDate(a.dateAcquired))}
+      ${detailItem('How Acquired', a.acquisitionType)}
+      ${detailItem('Health Status', healthBadge(a.healthStatus))}
+      ${detailItem('Status', statusBadge(a.status))}
+      ${a.notes ? detailItem('Notes', a.notes, true) : ''}
+    </div>
+    <div class="detail-section-title">Weight &amp; Financials</div>
+    <div class="detail-grid">
+      ${detailItem('Initial Weight', a.initialWeightKg+' kg')}
+      ${detailItem('Current Weight', a.currentWeightKg+' kg')}
+      ${detailItem('Weight Gain', `<span class="${wgain>=0?'profit':'loss'}">${wgain>=0?'+':''}${wgain.toFixed(1)} kg</span>`)}
+      ${detailItem('Acquisition Cost', fmt(acqCost))}
+      ${detailItem('Allocated Input Cost', fmt(inpCost))}
+      ${a.status==='active' ? detailItem('Projected Value', fmt(projGross)) : ''}
+      ${a.status==='active' ? detailItem('Projected Profit', `<span class="${projProfit>=0?'profit':'loss'}">${fmt(projProfit)}</span>`) : ''}
+      ${a.status==='active' ? detailItem('Profit Margin', marginPill(margin)) : ''}
+    </div>
+    ${relatedInputs.length ? `<div class="detail-section-title">Input Logs (${relatedInputs.length})</div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Product</th><th>Cost Share</th></tr></thead>
+    <tbody>${relatedInputs.map(i=>`<tr><td>${fmtDate(i.date)}</td><td>${inputTypePill(i.inputType)}</td><td>${i.productName}</td><td>${fmt((Number(i.totalCost)||0)/Math.max(1,(i.recipientAnimalIds||[]).length))}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${relatedSale ? `<div class="detail-section-title">Sale Record</div>
+    <div class="detail-grid">
+      ${detailItem('Sale Date', fmtDate(relatedSale.date))}
+      ${detailItem('Sold For', fmt(relatedSale.grossRevenue))}
+      ${detailItem('Net Profit', `<span class="${relatedSale.netProfit>=0?'profit':'loss'}">${fmt(relatedSale.netProfit)}</span>`)}
+      ${detailItem('Buyer', relatedSale.buyerName||'—')}
+    </div>` : ''}
+  `;
+  showDetail(animalIcon(grp?.animalType||'')+' '+a.name, body, () => openAnimalModal(a.animalId));
+}
+
+function showInputDetail(id) {
+  const i = DB.inputs.find(x=>x.inputId===id);
+  if (!i) return;
+  const recipientIds = i.recipientAnimalIds||[];
+  const recipients = recipientIds.map(rid=>{
+    const a = DB.animals.find(x=>x.animalId===rid);
+    return a ? a.name + (a.status!=='active'?` (${a.status})`:'') : rid;
+  });
+  const perHead = (Number(i.totalCost)||0) / Math.max(1, recipientIds.length);
+  const body = `
+    <div class="detail-grid">
+      ${detailItem('Date', fmtDate(i.date))}
+      ${detailItem('Type', inputTypePill(i.inputType))}
+      ${detailItem('Product', i.productName, true)}
+      ${detailItem('Quantity', i.quantity+' '+i.unit)}
+      ${detailItem('Unit Cost', fmt(i.unitCost))}
+      ${detailItem('Total Cost', fmt(i.totalCost))}
+      ${detailItem('Cost per Recipient', fmt(perHead))}
+      ${detailItem('Administered By', i.administeredBy||'—')}
+      ${i.notes ? detailItem('Notes', i.notes, true) : ''}
+    </div>
+    <div class="detail-section-title">Recipients (${recipients.length})</div>
+    ${recipients.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${recipients.map(n=>`<span class="badge badge-gray">${n}</span>`).join('')}</div>` : '<p class="text-muted" style="font-size:13px">No recipients recorded.</p>'}
+  `;
+  showDetail('🧪 ' + i.productName, body, () => openInputModal(i.inputId));
+}
+
+function showSaleDetail(id) {
+  const s = DB.sales.find(x=>x.saleId===id);
+  if (!s) return;
+  const np = Number(s.netProfit)||0;
+  const body = `
+    <div class="detail-grid">
+      ${detailItem('Date', fmtDate(s.date))}
+      ${detailItem('Animal', animalName(s.animalId))}
+      ${detailItem('Weight at Sale', s.weightAtSaleKg+' kg')}
+      ${detailItem('Price per Kilo', fmt(s.pricePerKilo))}
+      ${detailItem('Gross Revenue', fmt(s.grossRevenue))}
+      ${detailItem('Acquisition Cost', fmt(s.acquisitionCost))}
+      ${detailItem('Input Cost Allocated', fmt(s.totalInputCostAllocated))}
+      ${detailItem('Net Profit', `<span class="${np>=0?'profit':'loss'}">${fmt(np)}</span>`)}
+      ${detailItem('Buyer', s.buyerName||'—', true)}
+      ${s.notes ? detailItem('Notes', s.notes, true) : ''}
+    </div>
+    <div class="detail-section-title">Computation</div>
+    <div class="detail-grid one-col">
+      ${detailItem('Gross Revenue', `${s.weightAtSaleKg} kg × ${fmt(s.pricePerKilo)}/kg = <b>${fmt(s.grossRevenue)}</b>`, true)}
+      ${detailItem('Net Profit', `${fmt(s.grossRevenue)} − ${fmt(s.acquisitionCost)} (acquisition) − ${fmt(s.totalInputCostAllocated)} (inputs) = <b class="${np>=0?'profit':'loss'}">${fmt(np)}</b>`, true)}
+    </div>
+  `;
+  showDetail('💰 Sale — ' + animalName(s.animalId), body, () => openSaleModal(s.saleId));
+}
+
+// ---- Projected Revenue / Profit computation breakdowns ----
+function showProjectedRevenueDetail() {
+  const ppk = Number(DB.settings.defaultPricePerKilo)||0;
+  const rows = DB.animals.filter(a=>a.status==='active')
+    .map(a=>({a, gross:Compute.projectedGross(a)})).sort((x,y)=>y.gross-x.gross);
+  const total = rows.reduce((s,r)=>s+r.gross,0);
+  const body = `
+    <p class="detail-note">Every <b>active</b> animal, valued at its current weight × the default price of ${fmt(ppk)}/kg.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Animal</th><th>Current Weight</th><th>× ₱/kg</th><th>= Projected Value</th></tr></thead>
+      <tbody>${rows.length ? rows.map(r=>`<tr><td>${r.a.name}</td><td>${r.a.currentWeightKg} kg</td><td>${fmt(ppk)}</td><td>${fmt(r.gross)}</td></tr>`).join('') : '<tr><td colspan="4"><div class="empty"><p>No active animals.</p></div></td></tr>'}</tbody>
+      <tfoot><tr><td colspan="3"><b>TOTAL PROJECTED REVENUE</b></td><td><b>${fmt(total)}</b></td></tr></tfoot>
+    </table></div>
+  `;
+  showDetail('📈 Projected Revenue — Computation', body, null, true);
+}
+function showProjectedProfitDetail() {
+  const ppk = Number(DB.settings.defaultPricePerKilo)||0;
+  const rows = DB.animals.filter(a=>a.status==='active').map(a=>{
+    const gross = Compute.projectedGross(a), acq = Number(a.acquisitionCost)||0, inp = Compute.allocatedInputCost(a.animalId);
+    return {a, gross, acq, inp, net: gross-acq-inp};
+  }).sort((x,y)=>y.net-x.net);
+  const tot = rows.reduce((acc,r)=>({gross:acc.gross+r.gross, acq:acc.acq+r.acq, inp:acc.inp+r.inp, net:acc.net+r.net}), {gross:0,acq:0,inp:0,net:0});
+  const body = `
+    <p class="detail-note">Projected Profit = Projected Value − Acquisition Cost − Allocated Input Cost, for every <b>active</b> animal (current weight priced at ${fmt(ppk)}/kg).</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Animal</th><th>Proj. Value</th><th>Acq. Cost</th><th>Input Cost</th><th>Proj. Profit</th></tr></thead>
+      <tbody>${rows.length ? rows.map(r=>`<tr><td>${r.a.name}</td><td>${fmt(r.gross)}</td><td>${fmt(r.acq)}</td><td>${fmt(r.inp)}</td><td class="${r.net>=0?'profit':'loss'}">${fmt(r.net)}</td></tr>`).join('') : '<tr><td colspan="5"><div class="empty"><p>No active animals.</p></div></td></tr>'}</tbody>
+      <tfoot><tr><td><b>TOTAL</b></td><td><b>${fmt(tot.gross)}</b></td><td><b>${fmt(tot.acq)}</b></td><td><b>${fmt(tot.inp)}</b></td><td class="${tot.net>=0?'profit':'loss'}"><b>${fmt(tot.net)}</b></td></tr></tfoot>
+    </table></div>
+  `;
+  showDetail('📉 Projected Profit — Computation', body, null, true);
+}
+function showGroupProjectionDetail(groupId, metric) {
+  const g = DB.groups.find(x=>x.groupId===groupId);
+  if (!g) return;
+  const ppk = Number(DB.settings.defaultPricePerKilo)||0;
+  const rows = Compute.activeAnimalsInGroup(groupId).map(a=>{
+    const gross = Compute.projectedGross(a), acq = Number(a.acquisitionCost)||0, inp = Compute.allocatedInputCost(a.animalId);
+    return {a, gross, acq, inp, net: gross-acq-inp};
+  }).sort((x,y)=>y.net-x.net);
+  const tot = rows.reduce((acc,r)=>({gross:acc.gross+r.gross, acq:acc.acq+r.acq, inp:acc.inp+r.inp, net:acc.net+r.net}), {gross:0,acq:0,inp:0,net:0});
+  const title = (metric==='revenue' ? '📈 Projected Revenue — ' : '📉 Projected Profit — ') + g.groupName;
+  const body = `
+    <p class="detail-note">Based on ${rows.length} active animal(s) in this group, current weight × ${fmt(ppk)}/kg, minus acquisition and allocated input costs.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Animal</th><th>Proj. Value</th><th>Acq. Cost</th><th>Input Cost</th><th>Proj. Profit</th></tr></thead>
+      <tbody>${rows.length ? rows.map(r=>`<tr><td>${r.a.name}</td><td>${fmt(r.gross)}</td><td>${fmt(r.acq)}</td><td>${fmt(r.inp)}</td><td class="${r.net>=0?'profit':'loss'}">${fmt(r.net)}</td></tr>`).join('') : '<tr><td colspan="5"><div class="empty"><p>No active animals in this group.</p></div></td></tr>'}</tbody>
+      <tfoot><tr><td><b>TOTAL</b></td><td><b>${fmt(tot.gross)}</b></td><td><b>${fmt(tot.acq)}</b></td><td><b>${fmt(tot.inp)}</b></td><td class="${tot.net>=0?'profit':'loss'}"><b>${fmt(tot.net)}</b></td></tr></tfoot>
+    </table></div>
+  `;
+  showDetail(title, body, null, true);
+}
+function showAnimalProjectionDetail(animalId) {
+  const a = DB.animals.find(x=>x.animalId===animalId);
+  if (!a) return;
+  const ppk = Number(DB.settings.defaultPricePerKilo)||0;
+  const gross = Compute.projectedGross(a), acq = Number(a.acquisitionCost)||0, inp = Compute.allocatedInputCost(a.animalId);
+  const net = gross-acq-inp;
+  const body = `
+    <div class="detail-grid one-col">
+      ${detailItem('Formula', 'Current Weight × ₱/kg − Acquisition Cost − Allocated Input Cost', true)}
+      ${detailItem('Projected Value', `${a.currentWeightKg} kg × ${fmt(ppk)}/kg = <b>${fmt(gross)}</b>`, true)}
+      ${detailItem('Acquisition Cost', `− ${fmt(acq)}`, true)}
+      ${detailItem('Allocated Input Cost', `− ${fmt(inp)}`, true)}
+      ${detailItem('Projected Profit', `<span class="${net>=0?'profit':'loss'}" style="font-size:19px">${fmt(net)}</span>`, true)}
+    </div>
+  `;
+  showDetail('📉 Projected Profit — ' + a.name, body, null);
+}
+
+// ====================== REPORTS ======================
+let _activeReportTab = 'summary';
+function switchReportTab(t) {
+  _activeReportTab = t;
+  document.querySelectorAll('.tab[data-rtab]').forEach(el=>el.classList.toggle('active',el.dataset.rtab===t));
+  document.querySelectorAll('.report-tab').forEach(el=>el.style.display='none');
+  document.getElementById('report-'+t).style.display='';
+  buildReport(t);
+}
+function renderReports() { buildReport(_activeReportTab); }
+function topAnimalsByProjectedProfitHtml() {
+  const list = DB.animals.filter(a=>a.status==='active')
+    .map(a=>({a, profit:Compute.projectedNetProfit(a), gross:Compute.projectedGross(a)}))
+    .sort((x,y)=>y.profit-x.profit).slice(0,8);
+  if (!list.length) return '<div class="empty"><p>No active animals yet.</p></div>';
+  return list.map((r,i)=>`
+    <div class="summary-item">
+      <span><span style="color:var(--text-muted);font-weight:700">#${i+1}</span> ${animalIcon(DB.groups.find(g=>g.groupId===r.a.groupId)?.animalType||'')} <b>${r.a.name}</b></span>
+      <span class="${r.profit>=0?'profit':'loss'}">${fmt(r.profit)}</span>
+    </div>`).join('');
+}
+function buildReport(t) {
+  if (t==='summary') document.getElementById('report-summary').innerHTML = summaryReportHtml();
+  if (t==='per-group') document.getElementById('report-per-group').innerHTML = perGroupReportHtml();
+  if (t==='animals-report') document.getElementById('report-animals-report').innerHTML = animalsReportHtml();
+}
+function reportHtmlFor(which) {
+  if (which==='summary') return summaryReportHtml();
+  if (which==='per-group') return perGroupReportHtml();
+  if (which==='animals-report') return animalsReportHtml();
+  return '';
+}
+function summaryReportHtml() {
+    const totalInp = DB.inputs.reduce((s,i)=>s+Number(i.totalCost||0),0);
+    const totalRev = DB.sales.reduce((s,r)=>s+Number(r.grossRevenue||0),0);
+    const totalAcq = DB.animals.reduce((s,a)=>s+Number(a.acquisitionCost||0),0);
+    const totalNet = DB.sales.reduce((s,r)=>s+Number(r.netProfit||0),0);
+    const projRev = Compute.projectedTotalRevenue();
+    const projProfit = Compute.projectedTotalProfit();
+    return `
+      <div class="stat-grid" style="margin-bottom:20px">
+        <div class="stat-card"><div class="label">Total Groups</div><div class="value">${DB.groups.length}</div></div>
+        <div class="stat-card"><div class="label">Total Animals</div><div class="value">${DB.animals.length}</div></div>
+        <div class="stat-card"><div class="label">Acquisition Investment</div><div class="value" style="font-size:18px">${fmt(totalAcq)}</div></div>
+        <div class="stat-card"><div class="label">Total Input Expenses</div><div class="value" style="font-size:18px">${fmt(totalInp)}</div></div>
+        <div class="stat-card"><div class="label">Total Revenue</div><div class="value" style="font-size:18px">${fmt(totalRev)}</div></div>
+        <div class="stat-card"><div class="label">Net Profit (Sales)</div><div class="value ${totalNet>=0?'profit':'loss'}" style="font-size:18px">${fmt(totalNet)}</div></div>
+        <div class="stat-card proj"><div class="label">Projected Revenue</div><div class="value" style="font-size:18px">${fmt(projRev)}</div><div class="sub">Active animals, current price</div></div>
+        <div class="stat-card proj"><div class="label">Projected Profit</div><div class="value ${projProfit>=0?'profit':'loss'}" style="font-size:18px">${fmt(projProfit)}</div><div class="sub">Active animals, after costs</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px" class="report-summary-grid">
+        <div>
+          <h3 style="font-size:15px;margin-bottom:12px;color:var(--green-dark)">Expenses by Input Type</h3>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Type</th><th>Entries</th><th>Total Cost</th></tr></thead>
+            <tbody>${['food','medicine','vitamin','supplement','water','other'].map(tp=>{
+              const entries = DB.inputs.filter(i=>i.inputType===tp);
+              const cost = entries.reduce((s,i)=>s+Number(i.totalCost||0),0);
+              return `<tr><td>${inputTypePill(tp)}</td><td>${entries.length}</td><td>${fmt(cost)}</td></tr>`;
+            }).join('')}</tbody>
+          </table></div>
+        </div>
+        <div>
+          <h3 style="font-size:15px;margin-bottom:12px;color:var(--green-dark)">🏆 Top Animals by Projected Profit</h3>
+          <div class="summary-list">${topAnimalsByProjectedProfitHtml()}</div>
+        </div>
+      </div>`;
+}
+function perGroupReportHtml() {
+    const rows = DB.groups.map(g=>{
+      const animals = DB.animals.filter(a=>a.groupId===g.groupId);
+      const acq = animals.reduce((s,a)=>s+Number(a.acquisitionCost||0),0);
+      const inpCost = DB.inputs.filter(i=>(i.recipientAnimalIds||[]).some(id=>animals.find(a=>a.animalId===id)))
+        .reduce((s,i)=>s+Number(i.totalCost||0),0);
+      const sales = DB.sales.filter(s=>animals.find(a=>a.animalId===s.animalId));
+      const rev = sales.reduce((s,r)=>s+Number(r.grossRevenue||0),0);
+      const net = sales.reduce((s,r)=>s+Number(r.netProfit||0),0);
+      const projRev = Compute.groupProjectedRevenue(g.groupId);
+      const projProfit = Compute.groupProjectedProfit(g.groupId);
+      const margin = Compute.groupProfitMargin(g.groupId);
+      return {g,animals,acq,inpCost,rev,net,projRev,projProfit,margin};
+    });
+    const totProjRev = rows.reduce((s,r)=>s+r.projRev,0);
+    const totProjProfit = rows.reduce((s,r)=>s+r.projProfit,0);
+    return `<div class="table-wrap"><table>
+      <thead><tr><th>Group</th><th>Type</th><th>Animals</th><th>Acq Cost</th><th>Input Cost</th><th>Sales Revenue</th><th>Net Profit (Sales)</th><th>Proj. Revenue</th><th>Proj. Profit</th><th>Margin</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td><b>${r.g.groupName}</b></td><td>${animalIcon(r.g.animalType)} ${r.g.animalType}</td>
+        <td>${r.animals.length}</td><td>${fmt(r.acq)}</td><td>${fmt(r.inpCost)}</td>
+        <td>${fmt(r.rev)}</td><td class="${r.net>=0?'profit':'loss'}">${fmt(r.net)}</td>
+        <td>${fmt(r.projRev)}</td><td class="${r.projProfit>=0?'profit':'loss'}">${fmt(r.projProfit)}</td>
+        <td>${r.projRev?marginPill(r.margin):'—'}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr>
+        <td colspan="7"><b>TOTAL (Active Animals — Projected)</b></td>
+        <td><b>${fmt(totProjRev)}</b></td>
+        <td class="${totProjProfit>=0?'profit':'loss'}"><b>${fmt(totProjProfit)}</b></td>
+        <td>${totProjRev?marginPill(totProjProfit/totProjRev*100):'—'}</td>
+      </tr></tfoot>
+    </table></div>`;
+}
+function animalsReportHtml() {
+    const rows = DB.animals.map(a=>{
+      const wg = (Number(a.currentWeightKg)||0)-(Number(a.initialWeightKg)||0);
+      const grp = DB.groups.find(g=>g.groupId===a.groupId);
+      const projGross = Compute.projectedGross(a);
+      const projProfit = Compute.projectedNetProfit(a);
+      const margin = Compute.profitMargin(a);
+      return {a,wg,grp,projGross,projProfit,margin};
+    }).sort((x,y)=>y.projProfit-x.projProfit);
+    return `<div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Group</th><th>Init Wt</th><th>Curr Wt</th><th>Gain</th><th>Age</th><th>Proj. Value</th><th>Proj. Profit</th><th>Margin</th><th>Health</th><th>Status</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr${r.a.status!=='active'?' class="text-muted"':''}>
+        <td><b>${r.a.name}</b></td>
+        <td>${r.grp?.groupName||'—'}</td>
+        <td>${r.a.initialWeightKg} kg</td>
+        <td>${r.a.currentWeightKg} kg</td>
+        <td class="${r.wg>=0?'profit':'loss'}">${r.wg>=0?'+':''}${r.wg.toFixed(1)} kg</td>
+        <td>${ageStr(r.a.birthDate)}</td>
+        <td>${r.a.status==='active'?fmt(r.projGross):'—'}</td>
+        <td class="${r.a.status==='active'?(r.projProfit>=0?'profit':'loss'):''}">${r.a.status==='active'?fmt(r.projProfit):'—'}</td>
+        <td>${r.a.status==='active'?marginPill(r.margin):'—'}</td>
+        <td>${healthBadge(r.a.healthStatus)}</td>
+        <td>${statusBadge(r.a.status)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+// ====================== SETTINGS ======================
+function renderSettings() {
+  document.getElementById('s-biz').value = DB.settings.businessName||'';
+  document.getElementById('s-owner').value = DB.settings.ownerName||'';
+  document.getElementById('s-currency').value = DB.settings.currency||'₱';
+  document.getElementById('s-ppk').value = DB.settings.defaultPricePerKilo||200;
+}
+function saveSettings() {
+  DB.settings.businessName = document.getElementById('s-biz').value.trim();
+  DB.settings.ownerName = document.getElementById('s-owner').value.trim();
+  DB.settings.currency = document.getElementById('s-currency').value.trim()||'₱';
+  DB.settings.defaultPricePerKilo = Number(document.getElementById('s-ppk').value)||200;
+  save(); renderDashboard();
+  gasPost('saveSettings', DB.settings).catch(()=>{});
+  alert('Settings saved!');
+}
+
+// ====================== GAS SYNC ======================
+async function gasPost(action, data) {
+  // NOTE: Content-Type must be 'text/plain' (not 'application/json'). Apps Script
+  // web apps don't implement doOptions, so an 'application/json' body triggers a
+  // CORS preflight (OPTIONS) request that always fails. text/plain is a "simple"
+  // request per the CORS spec, so no preflight is sent — GAS just reads the raw
+  // body from e.postData.contents regardless of the declared content type.
+  const res = await fetch(GAS_URL, {method:'POST',body:JSON.stringify({action,data}),headers:{'Content-Type':'text/plain;charset=utf-8'}});
+  return res.json();
+}
+async function testGasConnection() {
+  const el = document.getElementById('gas-status');
+  el.textContent = '🔄 Testing…';
+  try {
+    const r = await gasPost('getData',{});
+    if (r && r.success) el.innerHTML = '<span style="color:#155724">✅ Connected! Data received.</span>';
+    else el.innerHTML = `<span style="color:#721c24">❌ Error: ${r?.error||'Unknown'}</span>`;
+  } catch(e) { el.innerHTML = `<span style="color:#721c24">❌ Network error: ${e.message}</span>`; }
+}
+function syncRecord(record, action) {
+  gasPost(action, record).catch(()=>{});
+}
+
+// Pulls the latest data from the Sheet automatically as the app opens, in a
+// "stealth" manner: if cached data already exists, it renders instantly from
+// local storage and the sync happens quietly in the background with no
+// overlay. Only on a genuine first load (nothing cached yet) does the waiting
+// cursor + blurred overlay appear, since there'd otherwise be nothing to show.
+async function initialSync() {
+  const hasCache = DB.groups.length || DB.animals.length || DB.inputs.length || DB.sales.length;
+  if (!hasCache) showLoading('Retrieving your data…');
+  try {
+    const r = await gasPost('getData',{});
+    if (r && r.success && r.data) {
+      DB.groups = r.data.groups||[];
+      DB.animals = r.data.animals||[];
+      DB.inputs = r.data.inputs||[];
+      DB.sales = r.data.sales||[];
+      if (r.data.settings) Object.assign(DB.settings, r.data.settings);
+      save();
+      const active = document.querySelector('.page.active')?.id?.replace('page-','') || 'dashboard';
+      renderDashboard();
+      renderPage(active);
+    }
+  } catch(e) { /* offline or unreachable — silently keep working from local/cached data */ }
+  finally { if (!hasCache) hideLoading(); }
+}
+
+// ====================== MODAL HELPERS ======================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close on overlay click — but NOT for the data-entry forms (group/animal/input/sale),
+// so an accidental click outside the modal never silently discards what was typed.
+// Those can only be closed via the ✕ button or the Cancel button.
+const OUTSIDE_CLICK_CLOSE_ALLOWED = ['confirm-modal','print-modal','detail-modal'];
+document.querySelectorAll('.modal-overlay').forEach(ov=>ov.addEventListener('click',e=>{
+  if (e.target===ov && OUTSIDE_CLICK_CLOSE_ALLOWED.includes(ov.id)) ov.classList.remove('open');
+}));
+
+// ====================== DELETE ======================
+function confirmDelete(type, id) {
+  const labels = {group:'this group',animal:'this animal',input:'this input log',sale:'this sale record'};
+  document.getElementById('confirm-msg').textContent = `Are you sure you want to delete ${labels[type]}? This cannot be undone.`;
+  document.getElementById('confirm-ok-btn').onclick = () => { doDelete(type,id); closeModal('confirm-modal'); };
+  openModal('confirm-modal');
+}
+function doDelete(type,id) {
+  if (type==='group') DB.groups = DB.groups.filter(x=>x.groupId!==id);
+  if (type==='animal') DB.animals = DB.animals.filter(x=>x.animalId!==id);
+  if (type==='input') DB.inputs = DB.inputs.filter(x=>x.inputId!==id);
+  if (type==='sale') DB.sales = DB.sales.filter(x=>x.saleId!==id);
+  save(); renderPage(document.querySelector('.page.active')?.id?.replace('page-',''));
+  const deleteActionMap = {group:'deleteGroup',animal:'deleteAnimal',input:'deleteInput',sale:'deleteSale'};
+  gasPost(deleteActionMap[type], {id}).catch(()=>{});
+}
+
+// ====================== PRINT ======================
+let _printCtx = null;
+const PRINT_TITLES = {groups:'📁 Groups', animals:'🐖 Animals', inputs:'🧪 Input Logs', sales:'💰 Sales Records', reports:'📊 Reports'};
+
+function openPrintModal(section) {
+  _printCtx = section;
+  document.getElementById('print-modal-title').textContent = 'Print ' + PRINT_TITLES[section];
+  document.getElementById('print-modal-body').innerHTML = printOptionsHtml(section);
+  openModal('print-modal');
+}
+
+function printOptionsHtml(section) {
+  if (section === 'reports') {
+    return `
+      <div class="form-group">
+        <label>Which Report</label>
+        <select id="pm-report-select">
+          <option value="summary">Summary</option>
+          <option value="per-group">Per Group</option>
+          <option value="animals-report">Animal Performance</option>
+          <option value="all">All Three</option>
+        </select>
+      </div>`;
+  }
+  const hasFilters = { groups:true, animals:true, inputs:true, sales:true }[section];
+  return `
+    <div class="form-group">
+      <label>Records to Print</label>
+      <select id="pm-scope">
+        <option value="filtered">Current filtered/search view</option>
+        <option value="all">All records</option>
+      </select>
+    </div>
+    ${hasFilters ? '<p style="font-size:12px;color:var(--text-muted)">"Current filtered/search view" uses whatever search text and filters are currently applied on the page.</p>' : ''}`;
+}
+
+function printHeaderHtml(title) {
+  const biz = DB.settings.businessName || 'Livestock Business Manager';
+  const owner = DB.settings.ownerName ? ` — ${DB.settings.ownerName}` : '';
+  const dateStr = new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+  return `<div class="print-header"><h1>${biz}${owner}</h1><h2>${title}</h2><div class="print-meta">Generated ${dateStr}</div></div>`;
+}
+
+function printGroupsTable(rows) {
+  if (!rows.length) return '<p>No records.</p>';
+  return `<table class="print-table"><thead><tr><th>Group Name</th><th>Type</th><th>Active Animals</th><th>Proj. Revenue</th><th>Proj. Profit</th><th>Margin</th><th>Status</th><th>Created</th></tr></thead><tbody>
+    ${rows.map(g=>{
+      const cnt = DB.animals.filter(a=>a.groupId===g.groupId&&a.status==='active').length;
+      const projRev = Compute.groupProjectedRevenue(g.groupId);
+      const projProfit = Compute.groupProjectedProfit(g.groupId);
+      const margin = Compute.groupProfitMargin(g.groupId);
+      return `<tr><td>${g.groupName}</td><td>${g.animalType}</td><td>${cnt}</td><td>${fmt(projRev)}</td><td>${fmt(projProfit)}</td><td>${cnt?fmtNum(margin,1)+'%':'—'}</td><td>${g.status}</td><td>${fmtDate(g.dateCreated)}</td></tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+
+function printAnimalsTable(rows) {
+  if (!rows.length) return '<p>No records.</p>';
+  return `<table class="print-table"><thead><tr><th>Name</th><th>Group</th><th>Gender</th><th>Breed</th><th>Age</th><th>Weight (kg)</th><th>Health</th><th>Status</th></tr></thead><tbody>
+    ${rows.map(a=>`<tr><td>${a.name}</td><td>${groupName(a.groupId)}</td><td>${a.gender}</td><td>${a.breed||'—'}</td><td>${ageStr(a.birthDate)}</td><td>${a.currentWeightKg}</td><td>${a.healthStatus}</td><td>${a.status}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+function printInputsTable(rows) {
+  if (!rows.length) return '<p>No records.</p>';
+  return `<table class="print-table"><thead><tr><th>Date</th><th>Type</th><th>Product</th><th>Qty</th><th>Total Cost</th><th>Recipients</th><th>Administered By</th></tr></thead><tbody>
+    ${rows.map(i=>{
+      const recip = (i.recipientAnimalIds||[]).map(id=>animalName(id)).join(', ') || '—';
+      return `<tr><td>${fmtDate(i.date)}</td><td>${i.inputType}</td><td>${i.productName}</td><td>${i.quantity} ${i.unit}</td><td>${fmt(i.totalCost)}</td><td>${recip}</td><td>${i.administeredBy||'—'}</td></tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+
+function printSalesTable(rows) {
+  if (!rows.length) return '<p>No records.</p>';
+  const totalGross = rows.reduce((s,r)=>s+Number(r.grossRevenue||0),0);
+  const totalNet = rows.reduce((s,r)=>s+Number(r.netProfit||0),0);
+  return `<table class="print-table"><thead><tr><th>Date</th><th>Animal</th><th>Weight (kg)</th><th>₱/kg</th><th>Gross</th><th>Input Cost</th><th>Net Profit</th><th>Buyer</th></tr></thead><tbody>
+    ${rows.map(s=>`<tr><td>${fmtDate(s.date)}</td><td>${animalName(s.animalId)}</td><td>${s.weightAtSaleKg}</td><td>${fmt(s.pricePerKilo)}</td><td>${fmt(s.grossRevenue)}</td><td>${fmt(s.totalInputCostAllocated)}</td><td>${fmt(s.netProfit)}</td><td>${s.buyerName||'—'}</td></tr>`).join('')}
+    <tr><td colspan="4"><b>TOTAL</b></td><td><b>${fmt(totalGross)}</b></td><td></td><td><b>${fmt(totalNet)}</b></td><td></td></tr>
+  </tbody></table>`;
+}
+
+function executePrint() {
+  let html = '';
+  if (_printCtx === 'groups') {
+    const scope = document.getElementById('pm-scope').value;
+    html = printHeaderHtml('Groups Report') + printGroupsTable(scope==='all' ? DB.groups : getFilteredGroups());
+  } else if (_printCtx === 'animals') {
+    const scope = document.getElementById('pm-scope').value;
+    html = printHeaderHtml('Animals Report') + printAnimalsTable(scope==='all' ? DB.animals : getFilteredAnimals());
+  } else if (_printCtx === 'inputs') {
+    const scope = document.getElementById('pm-scope').value;
+    html = printHeaderHtml('Input Logs Report') + printInputsTable(scope==='all' ? DB.inputs : getFilteredInputs());
+  } else if (_printCtx === 'sales') {
+    const scope = document.getElementById('pm-scope').value;
+    html = printHeaderHtml('Sales Report') + printSalesTable(scope==='all' ? DB.sales : getFilteredSales());
+  } else if (_printCtx === 'reports') {
+    const which = document.getElementById('pm-report-select').value;
+    const titles = {summary:'Summary Report', 'per-group':'Per-Group Report', 'animals-report':'Animal Performance Report'};
+    if (which === 'all') {
+      html = printHeaderHtml('Full Report')
+        + `<div class="print-section-title">Summary</div>` + summaryReportHtml()
+        + `<div class="print-section-title">Per Group</div>` + perGroupReportHtml()
+        + `<div class="print-section-title">Animal Performance</div>` + animalsReportHtml();
+    } else {
+      html = printHeaderHtml(titles[which]) + reportHtmlFor(which);
+    }
+  }
+  document.getElementById('print-area').innerHTML = html;
+  closeModal('print-modal');
+  setTimeout(()=>window.print(), 150);
+}
+
+// ====================== DATA MANAGEMENT ======================
+function exportData() {
+  const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'livestock-data-'+today()+'.json'; a.click();
+}
+function importData(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const fr = new FileReader();
+  fr.onload = ev => {
+    try { const d = JSON.parse(ev.target.result); Object.assign(DB,d); save(); alert('Data imported!'); renderPage('dashboard'); }
+    catch(err) { alert('Invalid JSON file.'); }
+  };
+  fr.readAsText(file);
+  e.target.value='';
+}
+function clearAllData() {
+  if (!confirm('DELETE ALL DATA? This cannot be undone.')) return;
+  DB = {groups:[],animals:[],inputs:[],sales:[],settings:{currency:'₱',defaultPricePerKilo:200,businessName:'',ownerName:''}};
+  save(); renderDashboard(); alert('All data cleared.');
+}
+// ====================== SAMPLE DATA ======================
+function loadSampleData() {
+  if (DB.animals.length>0 && !confirm('This will ADD sample data to your current data. Continue?')) return;
+  const g1='g-s1',g2='g-s2',g3='g-s3';
+  DB.groups.push(
+    {groupId:g1,groupName:'Fattening Swine - Batch Alpha',animalType:'pig',description:'Yorkshire cross breed.',dateCreated:'2026-03-10',status:'active'},
+    {groupId:g2,groupName:'Anglo-Nubian Dairy Goats',animalType:'goat',description:'Breeding group.',dateCreated:'2026-04-01',status:'active'},
+    {groupId:g3,groupName:'Free-Range Broilers - Batch 12',animalType:'chicken',description:'Table chickens.',dateCreated:'2026-05-15',status:'active'}
+  );
+  const a1=uid(),a2=uid(),a3=uid(),a4=uid(),a5=uid(),a6=uid(),a7=uid(),a8=uid(),a9=uid(),a10=uid();
+  DB.animals.push(
+    {animalId:a1,groupId:g1,name:'Swine White-01',gender:'male',birthDate:'2025-12-15',dateAcquired:'2026-03-10',acquisitionType:'bought',acquisitionCost:3500,breed:'Yorkshire',color:'White',initialWeightKg:18.5,currentWeightKg:78.2,healthStatus:'healthy',notes:'Excellent gain.',status:'active'},
+    {animalId:a2,groupId:g1,name:'Swine White-02',gender:'female',birthDate:'2025-12-18',dateAcquired:'2026-03-10',acquisitionType:'bought',acquisitionCost:3500,breed:'Yorkshire',color:'White with spot',initialWeightKg:17.0,currentWeightKg:74.5,healthStatus:'healthy',notes:'Robust grower.',status:'active'},
+    {animalId:a3,groupId:g1,name:'Swine Spotty-03',gender:'male',birthDate:'2026-03-15',dateAcquired:'2026-03-15',acquisitionType:'born',acquisitionCost:0,breed:'Duroc Hybrid',color:'Red-Brown spotted',initialWeightKg:1.8,currentWeightKg:42.1,healthStatus:'healthy',notes:'Born on-farm.',status:'active'},
+    {animalId:a4,groupId:g1,name:'Swine Black-04',gender:'male',birthDate:'2026-01-10',dateAcquired:'2026-03-12',acquisitionType:'bought',acquisitionCost:3200,breed:'Berkshire',color:'Black with white socks',initialWeightKg:15.2,currentWeightKg:69.8,healthStatus:'recovering',notes:'Recovering from mild fever.',status:'active'},
+    {animalId:a5,groupId:g2,name:'Billy Goat Captain',gender:'male',birthDate:'2024-05-10',dateAcquired:'2026-04-01',acquisitionType:'bought',acquisitionCost:8500,breed:'Anglo-Nubian',color:'Tan and Dark Brown',initialWeightKg:35.0,currentWeightKg:48.3,healthStatus:'healthy',notes:'Main stud buck.',status:'active'},
+    {animalId:a6,groupId:g2,name:'Nanny Goat Buttercup',gender:'female',birthDate:'2024-08-22',dateAcquired:'2026-04-01',acquisitionType:'bought',acquisitionCost:7000,breed:'Anglo-Nubian',color:'Creamy White',initialWeightKg:28.5,currentWeightKg:39.0,healthStatus:'healthy',notes:'Milking ~1.5L daily.',status:'active'},
+    {animalId:a7,groupId:g2,name:'Kid Daisy',gender:'female',birthDate:'2026-05-02',dateAcquired:'2026-05-02',acquisitionType:'born',acquisitionCost:0,breed:'Anglo-Nubian Cross',color:'Tan with white spots',initialWeightKg:2.5,currentWeightKg:10.2,healthStatus:'healthy',notes:'First-born kid.',status:'active'},
+    {animalId:a8,groupId:g3,name:'Broiler-01',gender:'unknown',birthDate:'2026-05-10',dateAcquired:'2026-05-15',acquisitionType:'bought',acquisitionCost:55,breed:'Cobb 500',color:'White',initialWeightKg:0.1,currentWeightKg:2.4,healthStatus:'healthy',notes:'',status:'active'},
+    {animalId:a9,groupId:g3,name:'Broiler-02',gender:'unknown',birthDate:'2026-05-10',dateAcquired:'2026-05-15',acquisitionType:'bought',acquisitionCost:55,breed:'Cobb 500',color:'White',initialWeightKg:0.1,currentWeightKg:2.6,healthStatus:'healthy',notes:'',status:'active'},
+    {animalId:a10,groupId:g3,name:'Broiler-03',gender:'unknown',birthDate:'2026-05-10',dateAcquired:'2026-05-15',acquisitionType:'bought',acquisitionCost:55,breed:'Cobb 500',color:'White',initialWeightKg:0.1,currentWeightKg:2.1,healthStatus:'healthy',notes:'',status:'active'}
+  );
+  DB.inputs.push(
+    {inputId:uid(),date:'2026-03-20',inputType:'food',productName:'Premium Grower Hog Pellets',unit:'kg',quantity:100,unitCost:32,totalCost:3200,recipientAnimalIds:[a1,a2,a4],administeredBy:'Markus (Herdsman)',notes:'2-week supply.'},
+    {inputId:uid(),date:'2026-04-10',inputType:'medicine',productName:'De-wormer Swine Forte',unit:'pack',quantity:2,unitCost:250,totalCost:500,recipientAnimalIds:[a1,a2,a3,a4],administeredBy:'Dr. Santos (Vet)',notes:'Routine deworming.'},
+    {inputId:uid(),date:'2026-04-15',inputType:'vitamin',productName:'Amino Goat Booster Liquid',unit:'L',quantity:1,unitCost:850,totalCost:850,recipientAnimalIds:[a5,a6],administeredBy:'Markus (Herdsman)',notes:'For milk production.'},
+    {inputId:uid(),date:'2026-05-20',inputType:'food',productName:'Poultry Starter Crumble',unit:'kg',quantity:50,unitCost:28,totalCost:1400,recipientAnimalIds:[a8,a9,a10],administeredBy:'Elena (Owner)',notes:'Pre-starter broiler feeds.'}
+  );
+  DB.sales.push({saleId:uid(),date:'2026-06-01',animalId:a1,weightAtSaleKg:85.0,pricePerKilo:210,grossRevenue:17850,acquisitionCost:3500,totalInputCostAllocated:1530,netProfit:12820,buyerName:"Geralds Meat Shop",notes:'First pig sold. Superior carcass yield.'});
+  DB.settings.businessName = 'Green Valley Farmstead';
+  DB.settings.ownerName = 'Elena Reyes';
+  save(); renderDashboard(); alert('Sample data loaded!');
+}
+
+// ====================== INIT ======================
+document.querySelectorAll('[data-page]').forEach(el=>{
+  el.addEventListener('click', ()=>navTo(el.dataset.page));
+});
+
+// Build mobile nav mirror
+const mobileNav = document.getElementById('mobile-nav');
+document.querySelectorAll('#sidebar [data-page]').forEach(el=>{
+  const clone = el.cloneNode(true);
+  clone.addEventListener('click',()=>navTo(el.dataset.page));
+  mobileNav.appendChild(clone);
+});
+// Sync mobile nav active state
+const origNavTo = navTo;
+window.navTo = function(page) {
+  origNavTo(page);
+  document.querySelectorAll('#mobile-nav [data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
+};
+
+// Double-tap bindings — attached once to the containers (not the rows/cards
+// themselves), so they keep working after every renderX() innerHTML swap.
+attachDoubleTap('groups-tbody', [
+  { selector: 'td.proj-cell', onDouble: el => showGroupProjectionDetail(el.dataset.groupId, el.dataset.metric) },
+  { selector: 'tr[data-id]', onDouble: el => showGroupDetail(el.dataset.id) }
+]);
+attachDoubleTap('animals-grid', [
+  { selector: '.proj-row[data-animal-id]', onDouble: el => showAnimalProjectionDetail(el.dataset.animalId) },
+  { selector: '.animal-card[data-id]', onDouble: el => showAnimalDetail(el.dataset.id) }
+]);
+attachDoubleTap('inputs-tbody', [
+  { selector: 'tr[data-id]', onDouble: el => showInputDetail(el.dataset.id) }
+]);
+attachDoubleTap('sales-tbody', [
+  { selector: 'tr[data-id]', onDouble: el => showSaleDetail(el.dataset.id) }
+]);
+attachDoubleTap('dash-stats', [
+  { selector: '[data-tap="revenue"]', onDouble: () => showProjectedRevenueDetail() },
+  { selector: '[data-tap="profit"]', onDouble: () => showProjectedProfitDetail() }
+]);
+
+load();
+renderDashboard();
+renderSettings();
+initialSync();
+</script>
+</body>
+</html>
